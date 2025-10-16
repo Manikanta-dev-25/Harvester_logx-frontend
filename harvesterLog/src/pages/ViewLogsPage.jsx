@@ -36,7 +36,7 @@ const ViewLogsPage = () => {
       setFeedbackMessage(null);
       try {
         const response = await fetch(
-          `http://localhost:8080/api/auth/logs/user/${encodeURIComponent(
+          `https://harvester-logx-backend-1.onrender.com/api/auth/logs/user/${encodeURIComponent(
             createdBy.trim()
           )}`
         );

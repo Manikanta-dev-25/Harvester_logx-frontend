@@ -11,8 +11,6 @@ import ResetPassword from "./pages/forgetpassword";
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem("isLoggedIn") === "true");
   const [userName, setUserName] = useState(() => localStorage.getItem("userName") || "");
-  
-  // ✅ 1. Add state for the search term
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleLogin = (name) => {
@@ -27,20 +25,18 @@ const App = () => {
     setUserName("");
     localStorage.clear();
   };
-  
-  // ✅ 2. Handler to update the search term state
+
   const handleSearchChange = (term) => {
     setSearchTerm(term);
   };
 
   return (
-    <Router>
+    <Router basename="/Harvester_logx-frontend">
       <Navbar
         isLoggedIn={isLoggedIn}
         onLogout={handleLogout}
-        // ✅ 2. Pass search state and handler to Navbar
         searchTerm={searchTerm}
-        onSearchChange={handleSearchChange} 
+        onSearchChange={handleSearchChange}
       />
       <Routes>
         <Route
@@ -56,15 +52,11 @@ const App = () => {
         />
         <Route path="/log-entry" element={<LogEntryPage />} />
         <Route path="/signup" element={<SignupPage />} />
-        <Route
-          path="/logs"
-          // ✅ 3. Pass search term to the ViewLogsPage
-          element={<ViewLogsPage userName={userName} searchTerm={searchTerm} />}
-        />
-          <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/logs" element={<ViewLogsPage userName={userName} searchTerm={searchTerm} />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
-      <hr style={{height:"5px"}} />
-      <Footer/>
+      <hr style={{ height: "5px" }} />
+      <Footer />
     </Router>
   );
 };

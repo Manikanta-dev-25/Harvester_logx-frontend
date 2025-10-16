@@ -12,22 +12,25 @@ const LogEntryPage = () => {
       totalDuration: "",
     },
   ]);
+
   const clearDraft = () => {
-    const confirmClear = window.confirm("Are you sure you want to clear all unsaved entries?");
-  if (!confirmClear) return;
-  localStorage.removeItem("unsavedLogRows");
-  setRows([
-    {
-      farmer: "",
-      phone: "",
-      village: "",
-      hourlyWage: "",
-      intervals: [{ start: "", end: "", duration: "" }],
-      total: "",
-      totalDuration: "",
-    },
-  ]);
-};
+    const confirmClear = window.confirm(
+      "Are you sure you want to clear all unsaved entries?"
+    );
+    if (!confirmClear) return;
+    localStorage.removeItem("unsavedLogRows");
+    setRows([
+      {
+        farmer: "",
+        phone: "",
+        village: "",
+        hourlyWage: "",
+        intervals: [{ start: "", end: "", duration: "" }],
+        total: "",
+        totalDuration: "",
+      },
+    ]);
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("unsavedLogRows");
@@ -144,11 +147,14 @@ const LogEntryPage = () => {
       };
 
       try {
-        const response = await fetch("http://localhost:8080/api/auth/logs/save", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+        const response = await fetch(
+          "https://harvester-logx-backend-1.onrender.com/api/auth/logs/save",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
 
         if (response.ok) {
           console.log("Saved:", payload);
@@ -280,80 +286,79 @@ const LogEntryPage = () => {
                   <td>
                     <input
                       type="text"
-                                          value={row.totalDuration}
-                    style={{ minWidth: "100px" }}
-                    readOnly
-                  />
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={row.total}
-                    style={{ minWidth: "200px" }}
-                    readOnly
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                      value={row.totalDuration}
+                      style={{ minWidth: "100px" }}
+                      readOnly
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={row.total}
+                      style={{ minWidth: "200px" }}
+                      readOnly
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      <div 
-      className="options"
-        style={{
-          display: "flex",
-          justifyContent: "space-around",
-          padding: "20px 10px",
-          backgroundColor: "#020b48",
-          border: "1px solid rgb(221,205,205)",
-          borderRadius: "20px",
-        }}
-      >
-        <button
-          onClick={addRow}
-           className="log-btn"
+        <div
+          className="options"
           style={{
-            border: "1px solid black",
-            backgroundColor: "rgba(32, 54, 224, 1)",
+            display: "flex",
+            justifyContent: "space-around",
+            padding: "20px 10px",
+            backgroundColor: "#020b48",
+            border: "1px solid rgb(221,205,205)",
             borderRadius: "20px",
-            color: "aliceblue",
           }}
         >
-          Add Another Farmer
-        </button>
-        <button
-          onClick={handleSave}
-           className="log-btn"
-          style={{
-            backgroundColor: "green",
-            color: "aliceblue",
-            border: "1px solid white",
-            borderRadius: "20px",
-            padding: "6px 20px",
-          }}
-        >
-          Save
-        </button>
-        <button
-  onClick={clearDraft}
-  className="log-btn"
-  style={{
-    backgroundColor: "crimson",
-    color: "white",
-    border: "1px solid white",
-    borderRadius: "20px",
-    padding: "6px 20px",
-  }}
->
-  Clear Draft
-</button>
-      </div>
-    </section>
-  </div>
-);
+          <button
+            onClick={addRow}
+            className="log-btn"
+            style={{
+              border: "1px solid black",
+              backgroundColor: "rgba(32, 54, 224, 1)",
+              borderRadius: "20px",
+              color: "aliceblue",
+            }}
+          >
+            Add Another Farmer
+          </button>
+          <button
+            onClick={handleSave}
+            className="log-btn"
+            style={{
+              backgroundColor: "green",
+              color: "aliceblue",
+              border: "1px solid white",
+              borderRadius: "20px",
+              padding: "6px 20px",
+            }}
+          >
+            Save
+          </button>
+          <button
+            onClick={clearDraft}
+            className="log-btn"
+            style={{
+              backgroundColor: "crimson",
+              color: "white",
+              border: "1px solid white",
+              borderRadius: "20px",
+              padding: "6px 20px",
+            }}
+          >
+            Clear Draft
+          </button>
+        </div>
+      </section>
+    </div>
+  );
 };
-
 
 export default LogEntryPage;

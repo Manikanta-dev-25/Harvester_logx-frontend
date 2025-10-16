@@ -9,7 +9,7 @@ const Footer = () => {
     >
       Need help? Reach out to us at{" "}
       <a
-        href="mailto:manicse.dev@gmail.com"
+        href="kondapakamani75@gmail.com"
         className="text-info text-decoration-none"
       >
         kondapakamani75@gmail.com

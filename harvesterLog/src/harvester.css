@@ -7,7 +7,8 @@
 }
 body{
   background-color: rgb(88, 88, 92);
-background-image: url('bg-img.jpeg'); 
+background-image: url('/Harvester_logx-frontend/bg-img.jpeg');
+
 background-repeat: no-repeat;
 background-size: cover;
   background-attachment: scroll;
