@@ -1,516 +1,367 @@
-import React, { useEffect, useState, useMemo } from "react"; 
+import React, { useState, useEffect } from "react";
 
-const ViewLogsPage = () => {
-  const [logs, setLogs] = useState([]);
-  const [editedLogs, setEditedLogs] = useState({});
-  const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [feedbackMessage, setFeedbackMessage] = useState(null);
-  const [selectedLogs, setSelectedLogs] = useState([]); // For checkbox deletion
-  const createdBy = JSON.parse(localStorage.getItem("user"))?.name;
+// ✅ Set your Render backend URL here
+const BACKEND_URL = "https://harvester-logx-backend-1.onrender.com";
 
-  // Convert 12h → 24h
-  const to24Hour = (time12) => {
-    if (!time12 || time12.length < 5) return "";
-    const [time, modifier] = time12.split(" ");
-    let [hours, minutes] = time.split(":");
-    if (hours === "12") hours = modifier === "AM" ? "00" : "12";
-    else if (modifier === "PM") hours = parseInt(hours, 10) + 12;
-    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-  };
+const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
+  const [showSignup, setShowSignup] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
-  // Convert 24h → 12h
-  const from24Hour = (time24) => {
-    if (!time24) return "";
-    let [hour, minute] = time24.split(":").map(Number);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    hour = hour % 12 || 12;
-    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${ampm}`;
-  };
+  const [signupData, setSignupData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
 
+  const [loginData, setLoginData] = useState({
+    email: "",
+    password: "",
+  });
+
+  // Search State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Restore login from localStorage
   useEffect(() => {
-    if (!createdBy) return;
-
-    const fetchLogs = async () => {
-      setError(null);
-      setFeedbackMessage(null);
-      try {
-        const response = await fetch(
-          `https://harvester-logx-backend-1.onrender.com/api/auth/logs/user/${encodeURIComponent(
-            createdBy.trim()
-          )}`
-        );
-        if (response.ok) {
-          const data = await response.json();
-          const initializedLogs = data.map((log) => {
-            const primaryHourlyRate = Number(log.hourlyWage) || 0;
-            const primaryRateFormatted = primaryHourlyRate.toFixed(2);
-            const timeIntervalsWithRate = log.timeIntervals.map((interval) => {
-              const duration = Number(interval.duration) || 0;
-              const hourlyRate = primaryRateFormatted;
-              const calculatedPrice = (duration * primaryHourlyRate).toFixed(2);
-              return {
-                ...interval,
-                hourlyRate: hourlyRate,
-                price: calculatedPrice,
-                start24: to24Hour(interval.startTime),
-                stop24: to24Hour(interval.stopTime),
-              };
-            });
-            const totalDuration = timeIntervalsWithRate.reduce(
-              (sum, i) => sum + (Number(i.duration) || 0),
-              0
-            );
-            const totalPrice = timeIntervalsWithRate.reduce(
-              (sum, i) => sum + (Number(i.price) || 0),
-              0
-            );
-            return {
-              ...log,
-              timeIntervals: timeIntervalsWithRate,
-              totalHours: totalDuration.toFixed(2),
-              totalPrice: totalPrice.toFixed(2),
-            };
-          });
-          setLogs(initializedLogs);
-        } else {
-          setError(
-            "Unable to connect to backend. Please check your server and API path."
-          );
-        }
-      } catch (err) {
-        console.error("Error fetching logs:", err);
-        setError("Unable to connect to backend. Please check your server.");
-      }
-    };
-
-    fetchLogs();
-  }, [createdBy]);
-
-  const filteredLogs = useMemo(() => {
-    if (!searchTerm) return logs;
-    const lowerCaseSearch = searchTerm.toLowerCase();
-    return logs.filter((log) => {
-      const logDateFormatted = new Date(log.logDate).toLocaleDateString("en-GB");
-      return (
-        log.name.toLowerCase().includes(lowerCaseSearch) ||
-        log.phno.includes(lowerCaseSearch) ||
-        log.village.toLowerCase().includes(lowerCaseSearch) ||
-        logDateFormatted.includes(lowerCaseSearch)
-      );
-    });
-  }, [logs, searchTerm]);
-
-  const handleFieldChange = (logId, field, value) => {
-    setEditedLogs((prev) => ({
-      ...prev,
-      [logId]: { ...prev[logId], [field]: value },
-    }));
-  };
-
-  const handleIntervalChange = (logId, index, field, value) => {
-    setLogs((prevLogs) =>
-      prevLogs.map((log) => {
-        if (log.id !== logId) return log;
-        const intervals = [...log.timeIntervals];
-        const interval = intervals[index];
-        if (field === "start24" || field === "stop24") interval[field] = value;
-        else interval[field] = Number(value) || 0;
-
-        let diff = 0;
-        if (interval.start24 && interval.stop24) {
-          const start = new Date(`1970-01-01T${interval.start24}:00`);
-          const end = new Date(`1970-01-01T${interval.stop24}:00`);
-          diff = (end - start) / 1000 / 3600;
-          if (diff < 0) diff += 24;
-          interval.duration = diff.toFixed(2);
-        } else interval.duration = "";
-
-        const durationValue = Number(interval.duration) || 0;
-        const hourlyRate = Number(interval.hourlyRate) || 0;
-        interval.price = (durationValue * hourlyRate).toFixed(2);
-
-        const totalDuration = intervals.reduce(
-          (sum, i) => sum + (Number(i.duration) || 0),
-          0
-        );
-        const totalPrice = intervals.reduce(
-          (sum, i) => sum + (Number(i.price) || 0),
-          0
-        );
-
-        return {
-          ...log,
-          timeIntervals: intervals,
-          totalHours: totalDuration.toFixed(2),
-          totalPrice: totalPrice.toFixed(2),
-        };
-      })
-    );
-  };
-
-  const addInterval = (logId) => {
-    setLogs((prevLogs) =>
-      prevLogs.map((log) => {
-        const defaultRate = log.hourlyWage ? Number(log.hourlyWage).toFixed(2) : 0;
-        return log.id === logId
-          ? {
-              ...log,
-              timeIntervals: [
-                ...log.timeIntervals,
-                {
-                  startTime: "",
-                  stopTime: "",
-                  start24: "",
-                  stop24: "",
-                  duration: "",
-                  hourlyRate: defaultRate,
-                  price: 0,
-                },
-              ],
-            }
-          : log;
-      })
-    );
-  };
-
-const handleBatchSave = async () => {
-    setFeedbackMessage(null);
-
-    if (filteredLogs.length === 0) {
-        alert("No logs to save.");
-        return;
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+      onLogin(user.name);
     }
+  }, [onLogin]);
 
-    const logsToSend = filteredLogs.map(log => {
-        const edited = editedLogs[log.id] || {};
+  // Signup input change
+  const handleSignupChange = (e) => {
+    setSignupData({ ...signupData, [e.target.name]: e.target.value });
+  };
 
-        const intervalsToSend = log.timeIntervals.map((i) => ({
-            startTime: i.start24 ? from24Hour(i.start24) : i.startTime,
-            stopTime: i.stop24 ? from24Hour(i.stop24) : i.stopTime,
-            duration: parseFloat(i.duration) || 0,
-            price: parseFloat(i.price) || 0,
-            hourlyRate: parseFloat(i.hourlyRate) || 0,
-        }));
+  // Login input change
+  const handleLoginChange = (e) => {
+    setLoginData({ ...loginData, [e.target.name]: e.target.value });
+  };
 
-        return {
-            ...log,
-            name: edited.name ?? log.name,
-            phno: edited.phno ?? log.phno,
-            village: edited.village ?? log.village,
-            totalHours: parseFloat(log.totalHours) || 0,
-            totalPrice: parseFloat(log.totalPrice) || 0,
-            hourlyWage: parseFloat(log.hourlyWage) || 0,
-            timeIntervals: intervalsToSend,
-        };
-    });
-
-    const updateUrl = `https://harvester-logx-backend-1.onrender.com/api/auth/logs/batch-update?user=${encodeURIComponent(createdBy)}`;
-
+  // Login submit
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
     try {
-        const response = await fetch(updateUrl, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(logsToSend),
-        });
-
-        if (response.ok) {
-            setEditedLogs({});
-            alert(`SUCCESS: ${logsToSend.length} log(s) updated successfully! ✅`);
-        } else {
-            const errorText = await response.text();
-            alert(`ERROR: Failed to save updates. Server response: ${errorText || "Server error."}`);
-        }
-    } catch (err) {
-        console.error("Batch Save failed:", err);
-        alert("ERROR: Unable to connect to backend. Please check your server.");
-    }
-};
-
-const handleCheckboxChange = (logId, checked) => {
-    if (checked) setSelectedLogs((prev) => [...prev, logId]);
-    else setSelectedLogs((prev) => prev.filter((id) => id !== logId));
-};
-
-const deleteLogs = async (logIds) => {
-    if (!createdBy) throw new Error("User authorization token is missing.");
-    
-    const deleteUrl = `https://harvester-logx-backend-1.onrender.com/api/auth/logs/batch-delete?user=${encodeURIComponent(createdBy)}`;
-
-    const response = await fetch(deleteUrl, {
-        method: "DELETE", 
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: logIds }), 
-    });
+        body: JSON.stringify(loginData),
+      });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `HTTP Error ${response.status} from server.`);
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem("user", JSON.stringify({ name: data.name }));
+        onLogin(data.name);
+        alert("✅ Login Successful!");
+        setLoginData({ email: "", password: "" });
+      } else {
+        const errorMessage = data.error
+          ? `❌ ${data.error}`
+          : "❌ Login failed. Invalid credentials.";
+        alert(errorMessage);
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      alert("⚠️ Unable to connect to backend.");
     }
-    
-    setLogs((prevLogs) => prevLogs.filter((log) => !logIds.includes(log.id)));
-    return true; 
-};
+  };
 
-const handleDeleteSelected = async () => {
-    if (!selectedLogs.length) return;
+  // Logout
+  const handleLogoutClick = () => {
+    onLogout();
+    localStorage.removeItem("user");
+    setLoginData({ email: "", password: "" });
+    alert("👋 Logged out successfully!");
+  };
 
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete ${selectedLogs.length} selected log(s)?`
-    );
+  // Forgot password submit
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail }),
+      });
 
-    if (!confirmDelete) return;
+      if (response.ok) {
+        alert("Password reset link sent to your email!");
+      } else {
+        alert("Email not found. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error sending reset request:", error);
+      alert("Server error. Try again later.");
+    }
+
+    setShowForgotPassword(false);
+    setResetEmail("");
+  };
+
+  // Signup submit
+  const handleSignupSubmit = async (e) => {
+    e.preventDefault();
+
+    if (signupData.password !== signupData.confirmPassword) {
+      alert("Passwords do not match ❌");
+      return;
+    }
+
+    if (signupData.password.length < 6) {
+      alert("Password must be at least 6 characters ❌");
+      return;
+    }
 
     try {
-        await deleteLogs(selectedLogs); 
-        alert(`SUCCESS: ${selectedLogs.length} selected log(s) deleted successfully! ✅`); 
-        setSelectedLogs([]);
-    } catch (error) {
-        console.error("Deletion failed:", error);
-        const errorMessage = error.message || "Unknown server error.";
-        alert(`ERROR: Failed to delete logs. Server details: ${errorMessage}`);
-    }
-};
+      const response = await fetch(`${BACKEND_URL}/api/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: signupData.name,
+          email: signupData.email,
+          password: signupData.password,
+        }),
+      });
 
-  if (!createdBy)
-    return <div className="text-center p-5 text-gray-500">Please login to view your logs.</div>;
-  if (error)
-    return <div className="text-center p-5 text-red-600 font-semibold">{error}</div>;
+      if (response.ok) {
+        const data = await response.json();
+        alert(`✅ Signup Successful! Welcome, ${data.name}`);
+        setShowSignup(false);
+        setSignupData({ name: "", email: "", password: "", confirmPassword: "" });
+      } else {
+        alert("Signup failed ❌");
+      }
+    } catch (err) {
+      console.error("Error during signup:", err);
+      alert("⚠️ Unable to connect to backend.");
+    }
+  };
+
+  // Search submit
+  const handleSearchSubmit = async (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    setSearchResults([]);
+
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/api/logs/search?query=${encodeURIComponent(searchQuery)}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data);
+      } else {
+        console.error("Search failed:", response.statusText);
+        alert("Failed to perform search. Server error.");
+      }
+    } catch (err) {
+      console.error("Search error:", err);
+      alert("⚠️ Unable to connect to backend for search.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   return (
-    <div className="p-3">
-      <h2 className="text-center">
-        View-<span style={{ color: "green" }}>Logs</span>
-      </h2>
+    <section id="main">
+      {/* Carousel */}
+      <div id="carouselExampleIndicators" className="carousel slide" data-bs-ride="carousel">
+        <div className="carousel-indicators">
+          <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="0" className="active"></button>
+          <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="1"></button>
+          <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="2"></button>
+        </div>
+        <div className="carousel-inner" data-bs-interval="1500">
+          <div className="carousel-item active">
+            <img src="https://wallpaperaccess.com/full/5858786.jpg" className="d-block w-100" alt="Slide 1" />
+          </div>
+          <div className="carousel-item">
+            <img src="https://tse2.mm.bing.net/th/id/OIP.S0jpvqYhYcwhtruFvjzN9QHaE8" className="d-block w-100" alt="Slide 2" />
+          </div>
+          <div className="carousel-item">
+            <img src="https://thumbs.dreamstime.com/b/wheat-ears-sack-standing-field-sunset-grain-bag-307708049.jpg" className="d-block w-100" alt="Slide 3" />
+          </div>
+        </div>
+        <button className="carousel-control-prev" type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide="prev">
+          <span className="carousel-control-prev-icon" aria-hidden="true"></span>
+        </button>
+        <button className="carousel-control-next" type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide="next">
+          <span className="carousel-control-next-icon" aria-hidden="true"></span>
+        </button>
+      </div>
 
-      {feedbackMessage && (
-        <div
-          className={`p-3 mb-4 rounded-md text-white font-semibold ${feedbackMessage.type === "success" ? "bg-green-600" : "bg-red-600"}`}
-          role="alert"
-        >
-          {feedbackMessage.text}
-          <button className="float-right font-bold ml-2" onClick={() => setFeedbackMessage(null)}>
-            &times;
-          </button>
+      {/* Login / Greeting */}
+      <div className="form p-4" style={{ maxWidth: "400px", margin: "30px auto" }}>
+        {!isLoggedIn ? (
+          <form onSubmit={handleLoginSubmit}>
+            <div className="mb-3">
+              <label htmlFor="emailInput" className="form-label">Email address</label>
+              <input
+                type="email"
+                name="email"
+                className="form-control"
+                id="emailInput"
+                placeholder="@email.com"
+                value={loginData.email}
+                onChange={handleLoginChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="passwordInput" className="form-label">Password</label>
+              <input
+                type="password"
+                name="password"
+                className="form-control"
+                id="passwordInput"
+                placeholder="password here"
+                value={loginData.password}
+                onChange={handleLoginChange}
+                required
+              />
+            </div>
+
+            <div className="mb-3 form-check">
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowForgotPassword(true);
+                }}
+                className="form-check-label"
+                style={{ textDecoration: "none", fontWeight: 400, fontSize: "large" }}
+              >
+                Forgot Password?
+              </a>
+            </div>
+
+            <div className="d-flex justify-content-between">
+              <button type="submit" className="btn btn-primary w-50 me-2">Log In</button>
+              <button
+                type="button"
+                className="btn btn-success w-50"
+                onClick={() => setShowSignup(true)}
+              >
+                Sign Up
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="text-center">
+            <h3>Welcome back, {userName} 👋</h3>
+            <button className="btn btn-outline-danger mt-3" onClick={handleLogoutClick}>
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Signup Modal */}
+      {showSignup && (
+        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Create an Account</h5>
+                <button type="button" className="btn-close" onClick={() => setShowSignup(false)}></button>
+              </div>
+              <div className="modal-body">
+                <form onSubmit={handleSignupSubmit}>
+                  <div className="mb-3">
+                    <label className="form-label">Full Name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      className="form-control"
+                      placeholder="Your Name"
+                      value={signupData.name}
+                      onChange={handleSignupChange}
+                      required
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      className="form-control"
+                      placeholder="name@example.com"
+                      value={signupData.email}
+                      onChange={handleSignupChange}
+                      required
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label">Password</label>
+                    <input
+                      type="password"
+                      name="password"
+                      className="form-control"
+                      placeholder="Enter password (min 6 characters)"
+                      value={signupData.password}
+                      onChange={handleSignupChange}
+                      required
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label">Confirm Password</label>
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      className="form-control"
+                      placeholder="Re-enter password"
+                      value={signupData.confirmPassword}
+                      onChange={handleSignupChange}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary w-100">Sign Up</button>
+                </form>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
-      <section id="View-Logs">
-        <div className="mb-4 border border-primary-subtle">
-          <input
-            type="text"
-            className="form-control form-control-lg"
-            placeholder="🔎"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-                {!filteredLogs.length && logs.length > 0 && (
-          <div className="text-center p-5 text-yellow-500 font-semibold border-2 border-dashed border-yellow-300 rounded-lg">
-            No logs found matching "{searchTerm}" 😕
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Reset Password</h5>
+                <button type="button" className="btn-close" onClick={() => setShowForgotPassword(false)}></button>
+              </div>
+              <div className="modal-body">
+                <form onSubmit={handleForgotPassword}>
+                  <div className="mb-3">
+                    <label className="form-label">Enter your registered email</label>
+                    <input
+                      type="email"
+                      className="form-control"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary w-100">Send Reset Link</button>
+                </form>
+              </div>
+            </div>
           </div>
-        )}
-
-        {!logs.length && !searchTerm && (
-          <div className="text-center p-5 text-gray-500 font-semibold border-2 border-dashed border-gray-300 rounded-lg">
-            No logs found for {createdBy} 😕
-          </div>
-        )}
-
-        <div className="table-responsive">
-          <table className="table table-dark table-hover table-bordered">
-            <thead>
-              <tr>
-                <th>Select</th>
-                <th>Farmer Name</th>
-                <th>Phone No</th>
-                <th>Village</th>
-                <th>Date</th>
-                <th>Hourly Wage (Log Default)</th>
-                <th>Time Intervals</th>
-                <th>Total Duration</th>
-                <th>Total Price (₹)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLogs.map((log) => {
-                const edited = editedLogs[log.id] || {};
-                return (
-                  <tr key={log.id}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedLogs.includes(log.id)}
-                        onChange={(e) => handleCheckboxChange(log.id, e.target.checked)}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={edited.name ?? log.name}
-                        onChange={(e) => handleFieldChange(log.id, "name", e.target.value)}
-                        placeholder="Farmer name"
-                        style={{ width: "100px" }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="tel"
-                        className="form-control"
-                        value={edited.phno ?? log.phno}
-                        onChange={(e) => handleFieldChange(log.id, "phno", e.target.value)}
-                        placeholder="Phone No"
-                        style={{ width: "100px" }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={edited.village ?? log.village}
-                        onChange={(e) => handleFieldChange(log.id, "village", e.target.value)}
-                        placeholder="Village"
-                        style={{ width: "100px" }}
-                      />
-                    </td>
-                    <td>{new Date(log.logDate).toLocaleDateString("en-GB")}</td>
-                    <td>
-                      <input
-                        type="text"
-                        className="form-control bg-secondary text-white"
-                        value={`₹${log.hourlyWage || "N/A"}`}
-                        readOnly
-                        style={{ width: "100px" }}
-                      />
-                    </td>
-                    <td>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        {log.timeIntervals.map((interval, idx) => (
-                          <div
-                            key={idx}
-                            style={{ display: "flex", gap: "6px" }}
-                            className="p-1 border border-info rounded-md d-flex flex-wrap gap-2"
-                          >
-                            <input
-                              type="time"
-                              className="form-control form-control-sm"
-                              value={interval.start24}
-                              onChange={(e) =>
-                                handleIntervalChange(log.id, idx, "start24", e.target.value)
-                              }
-                            />
-                            <input
-                              type="time"
-                              className="form-control form-control-sm"
-                              value={interval.stop24}
-                              onChange={(e) =>
-                                handleIntervalChange(log.id, idx, "stop24", e.target.value)
-                              }
-                            />
-                            <input
-                              type="text"
-                              className="form-control form-control-sm"
-                              value={interval.duration + " hrs"}
-                              readOnly
-                              style={{ width: "100px" }}
-                            />
-                            <input
-                              type="number"
-                              className="form-control form-control-sm"
-                              value={interval.hourlyRate || ""}
-                              onChange={(e) =>
-                                handleIntervalChange(log.id, idx, "hourlyRate", e.target.value)
-                              }
-                              style={{ width: "100px" }}
-                            />
-                            <input
-                              type="text"
-                              className="form-control form-control-sm bg-success-subtle text-success"
-                              value={interval.price}
-                              readOnly
-                              style={{ width: "100px" }}
-                            />
-                          </div>
-                        ))}
-                        <button
-                          className="btn btn-sm btn-info mt-2"
-                          onClick={() => addInterval(log.id)}
-                        >
-                          ➕ Add Interval
-                        </button>
-                      </div>
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        className="form-control bg-secondary text-white"
-                        value={log.totalHours}
-                        readOnly
-                        style={{ width: "100px" }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        className="form-control bg-success text-white"
-                        value={`₹${log.totalPrice}`}
-                        readOnly
-                        style={{ width: "100px" }}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
         </div>
-
-        <div className="options"
-          style={{
-            display: "flex",
-            justifyContent: "space-around",
-            padding: "20px 10px",
-            backgroundColor: "#020b48",
-            border: "1px solid rgb(221,205,205)",
-            borderRadius: "20px",
-          }}
-        >
-          <button
-            className="btn btn-sm"
-            style={{
-              backgroundColor: "green",
-              color: "white",
-              borderRadius: "10px",
-            }}
-            onClick={handleBatchSave}
-          >
-            Save Updates
-          </button>
-          <button
-            className="btn btn-sm btn-danger"
-            onClick={handleDeleteSelected}
-            disabled={!selectedLogs.length}
-          >
-            Delete Selected Logs
-          </button>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              border: "1px solid black",
-              backgroundColor: "rgb(4,19,132)",
-              borderRadius: "20px",
-              color: "aliceblue",
-              padding: "6px 20px",
-            }}
-          >
-           🔄 Refresh Logs
-          </button>
-        </div>
-      </section>
-    </div>
+      )}
+    </section>
   );
 };
 
-export default ViewLogsPage;
-
+export default HomePage;
