@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from "react";
 
-// The BACKEND_URL constant has been removed as requested.
-// The URL 'https://harvester-logx-backend-1.onrender.com' is now directly embedded in fetch calls.
-
 const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
   const [showSignup, setShowSignup] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -17,25 +14,16 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
 
   const [loginData, setLoginData] = useState({
     email: "",
-    password: "",
+      password: "",
   });
 
-  // New State for Toast Notification
-  const [toast, setToast] = useState({ message: "", type: "" }); // type: 'success', 'error', 'info'
-
-  // Search State
+  // --- Search State (Kept for future use in Navbar) ---
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  // --------------------
 
-  // Helper function to show and auto-clear toast messages
-  const showToast = (message, type) => {
-    setToast({ message, type });
-    // Auto-clear after 4 seconds
-    setTimeout(() => setToast({ message: "", type: "" }), 4000);
-  };
-
-  // Restore login from localStorage
+  // ✅ Restore login from localStorage (persistent login)
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
@@ -54,12 +42,11 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
     setLoginData({ ...loginData, [e.target.name]: e.target.value });
   };
 
-  // Login submit
+  // ✅ Login submit (handles specific error messaging)
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Direct URL usage
-      const response = await fetch("https://harvester-logx-backend-1.onrender.com/api/auth/login", {
+      const response = await fetch("http://localhost:8080/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(loginData),
@@ -70,48 +57,51 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
       if (response.ok) {
         localStorage.setItem("user", JSON.stringify({ name: data.name }));
         onLogin(data.name);
-        showToast(`✅ Login Successful! Welcome, ${data.name}`, "success"); // Replaced alert
+
+        alert("✅ Login Successful!");
         setLoginData({ email: "", password: "" });
       } else {
-        const errorMessage = data.error
-          ? `❌ ${data.error}`
-          : "❌ Login failed. Invalid credentials.";
-        showToast(errorMessage, "error"); // Replaced alert
+        // FIX: Display specific error message for failed login
+        const errorMessage = data.error 
+            ? `❌ ${data.error}`
+            : "❌ Login failed. No user account found or invalid credentials.";
+        alert(errorMessage);
       }
     } catch (err) {
       console.error("Login error:", err);
-      // Inform the user about the network issue/cold start
-      showToast("⚠️ Unable to connect to backend. (Check Render status or try again)", "error"); // Replaced alert
+      alert("⚠️ Unable to connect to backend.");
     }
   };
 
-  // Logout
+  // ✅ Logout
   const handleLogoutClick = () => {
     onLogout();
-    localStorage.removeItem("user");
+    localStorage.removeItem("user"); // clear stored session
     setLoginData({ email: "", password: "" });
-    showToast("👋 Logged out successfully!", "info"); // Replaced alert
+    alert("👋 Logged out successfully!");
   };
 
   // Forgot password submit
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     try {
-      // Direct URL usage
-      const response = await fetch("https://harvester-logx-backend-1.onrender.com/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: resetEmail }),
-      });
+      const response = await fetch(
+        "http://localhost:8080/api/auth/forgot-password",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: resetEmail }),
+        }
+      );
 
       if (response.ok) {
-        showToast("Password reset link sent to your email!", "success"); // Replaced alert
+        alert("Password reset link sent to your email!");
       } else {
-        showToast("Email not found. Please try again.", "error"); // Replaced alert
+        alert("Email not found. Please try again.");
       }
     } catch (error) {
       console.error("Error sending reset request:", error);
-      showToast("Server error. Try again later.", "error"); // Replaced alert
+      alert("Server error. Try again later.");
     }
 
     setShowForgotPassword(false);
@@ -122,19 +112,21 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
 
+    // ✅ Match check
     if (signupData.password !== signupData.confirmPassword) {
-      showToast("Passwords do not match ❌", "error"); // Replaced alert
+      alert("Passwords do not match ❌");
       return;
     }
 
+    // ✅ Password strength rules
     if (signupData.password.length < 6) {
-      showToast("Password must be at least 6 characters ❌", "error"); // Replaced alert
+      alert("Password must be at least 6 characters ❌");
       return;
     }
+
 
     try {
-      // Direct URL usage
-      const response = await fetch("https://harvester-logx-backend-1.onrender.com/api/auth/signup", {
+      const response = await fetch("http://localhost:8080/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -146,19 +138,19 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
 
       if (response.ok) {
         const data = await response.json();
-        showToast(`✅ Signup Successful! Welcome, ${data.name}`, "success"); // Replaced alert
+        alert(`✅ Signup Successful! Welcome, ${data.name}`);
         setShowSignup(false);
         setSignupData({ name: "", email: "", password: "", confirmPassword: "" });
       } else {
-        showToast("Signup failed ❌. Email may already be registered.", "error"); // Replaced alert
+        alert("Signup failed ❌");
       }
     } catch (err) {
       console.error("Error during signup:", err);
-      showToast("⚠️ Unable to connect to backend for signup.", "error"); // Replaced alert
+      alert("⚠️ Unable to connect to backend.");
     }
   };
-
-  // Search submit
+  
+  // ✅ Search Functionality (Logic kept, UI removed)
   const handleSearchSubmit = async (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -167,53 +159,35 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
     setSearchResults([]);
 
     try {
-      // Direct URL usage
-      const response = await fetch(
-        `https://harvester-logx-backend-1.onrender.com/api/logs/search?query=${encodeURIComponent(searchQuery)}`
-      );
+     const response = await fetch(
+  `https://harvester-logx-backend-1.onrender.com/api/logs/search?query=${encodeURIComponent(searchQuery)}`
+);
       if (response.ok) {
         const data = await response.json();
         setSearchResults(data);
-        showToast(`Found ${data.length} results for "${searchQuery}"`, "info");
       } else {
         console.error("Search failed:", response.statusText);
-        showToast("Failed to perform search. Server error.", "error"); // Replaced alert
+        alert("Failed to perform search. Server error.");
       }
     } catch (err) {
       console.error("Search error:", err);
-      showToast("⚠️ Unable to connect to backend for search.", "error"); // Replaced alert
+      alert("⚠️ Unable to connect to backend for search.");
     } finally {
       setIsSearching(false);
     }
   };
 
-  // Determine Bootstrap class for Toast
-  const toastClass = toast.type === 'success' 
-    ? 'alert-success' 
-    : toast.type === 'error' 
-    ? 'alert-danger' 
-    : 'alert-info';
 
   return (
     <section id="main">
-      {/* Toast Notification */}
-      {toast.message && (
-        <div 
-          className={`alert ${toastClass} text-center fixed-top mt-3 mx-auto w-75`} 
-          role="alert" 
-          style={{ zIndex: 1050, maxWidth: "500px" }}
-        >
-          {toast.message}
-        </div>
-      )}
-
-      {/* Carousel */}
+      {/* ✅ Carousel */}
       <div id="carouselExampleIndicators" className="carousel slide" data-bs-ride="carousel">
         <div className="carousel-indicators">
           <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="0" className="active"></button>
           <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="1"></button>
           <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="2"></button>
         </div>
+
         <div className="carousel-inner" data-bs-interval="1500">
           <div className="carousel-item active">
             <img src="https://wallpaperaccess.com/full/5858786.jpg" className="d-block w-100" alt="Slide 1" />
@@ -225,6 +199,7 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
             <img src="https://thumbs.dreamstime.com/b/wheat-ears-sack-standing-field-sunset-grain-bag-307708049.jpg" className="d-block w-100" alt="Slide 3" />
           </div>
         </div>
+
         <button className="carousel-control-prev" type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide="prev">
           <span className="carousel-control-prev-icon" aria-hidden="true"></span>
         </button>
@@ -233,7 +208,7 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
         </button>
       </div>
 
-      {/* Login / Greeting */}
+      {/* ✅ Login Form / Greeting */}
       <div className="form p-4" style={{ maxWidth: "400px", margin: "30px auto" }}>
         {!isLoggedIn ? (
           <form onSubmit={handleLoginSubmit}>
@@ -292,53 +267,44 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
         ) : (
           <div className="text-center">
             <h3>Welcome back, {userName} 👋</h3>
-            
-            {/* Search Bar (Only visible when logged in) */}
-            <form onSubmit={handleSearchSubmit} className="input-group my-4">
-                <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Search logs by location, crop, or owner..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    required
-                />
-                <button 
-                    className="btn btn-warning" 
-                    type="submit" 
-                    disabled={isSearching}
-                >
-                    {isSearching ? 'Searching...' : 'Search'}
-                </button>
-            </form>
-
-            {/* Search Results Display */}
-            {searchResults.length > 0 && (
-                <div className="mt-4 text-start">
-                    <h5>Search Results ({searchResults.length})</h5>
-                    <ul className="list-group">
-                        {searchResults.map((log, index) => (
-                            <li key={index} className="list-group-item d-flex justify-content-between align-items-start">
-                                <div className="ms-2 me-auto">
-                                    <div className="fw-bold">Crop: {log.cropName || 'N/A'} in {log.location || 'N/A'}</div>
-                                    <small>Owner: {log.ownerName || 'N/A'}</small>
-                                </div>
-                                <span className="badge bg-primary rounded-pill">ID: {log.logId.substring(0, 4)}...</span>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-
-
-            <button className="btn btn-outline-danger mt-3" onClick={handleLogoutClick}>
+            <button
+              className="btn btn-outline-danger mt-3"
+              onClick={handleLogoutClick}
+            >
               Logout
             </button>
           </div>
         )}
       </div>
+      
+      {/* --- Search Results Display (Kept in case the user wants to see results here after searching in the Navbar) --- */}
+      {searchResults.length > 0 && (
+          <div className="p-4 bg-light rounded shadow-lg" style={{ maxWidth: "600px", margin: "30px auto" }}>
+              <h6 className="text-center text-success">Found {searchResults.length} results for "{searchQuery}":</h6>
+              <ul className="list-group">
+                  {searchResults.map(log => (
+                      <li key={log.id} className="list-group-item d-flex justify-content-between align-items-center">
+                          <div>
+                              <strong>{log.name} ({log.village})</strong>
+                              <br />
+                              <small>Total Hours: {log.totalHours} | Price: ₹{log.totalPrice}</small>
+                          </div>
+                          <span className="badge bg-primary rounded-pill">{log.phno}</span>
+                      </li>
+                  ))}
+              </ul>
+          </div>
+      )}
 
-      {/* Signup Modal */}
+      {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
+          <div className="p-4" style={{ maxWidth: "600px", margin: "30px auto" }}>
+             <p className="text-danger mt-3 text-center">No logs found matching "{searchQuery}".</p>
+          </div>
+      )}
+      {/* ------------------------------------------------------------------------------------------------------------- */}
+
+
+      {/* ✅ Signup Modal */}
       {showSignup && (
         <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
           <div className="modal-dialog modal-dialog-centered">
@@ -405,7 +371,7 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
         </div>
       )}
 
-      {/* Forgot Password Modal */}
+      {/* ✅ Forgot Password Modal */}
       {showForgotPassword && (
         <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
           <div className="modal-dialog modal-dialog-centered">
