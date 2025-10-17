@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import HomePage from "./pages/Homepage";
 import SignupPage from "./pages/Signup";
@@ -7,6 +7,21 @@ import LogEntryPage from "./pages/LogENtryPage";
 import ViewLogsPage from "./pages/ViewLogsPage";
 import Footer from "./pages/Footer";
 import ResetPassword from "./pages/forgetpassword";
+
+// A wrapper component to handle query-based redirect
+const AppWrapper = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const redirectPath = params.get("path");
+    if (redirectPath) {
+      navigate(redirectPath, { replace: true });
+    }
+  }, [navigate]);
+
+  return <App />;
+};
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem("isLoggedIn") === "true");
@@ -31,7 +46,7 @@ const App = () => {
   };
 
   return (
-    <Router basename="/Harvester_logx-frontend">
+    <>
       <Navbar
         isLoggedIn={isLoggedIn}
         onLogout={handleLogout}
@@ -57,8 +72,15 @@ const App = () => {
       </Routes>
       <hr style={{ height: "5px" }} />
       <Footer />
-    </Router>
+    </>
   );
 };
 
-export default App;
+// Export the Router wrapper
+export default function AppWithRouter() {
+  return (
+    <Router basename="/Harvester_logx-frontend">
+      <AppWrapper />
+    </Router>
+  );
+}
