@@ -46,7 +46,7 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://localhost:8080/api/auth/login", {
+      const response = await fetch("https://harvester-logx-backend-1.onrender.com/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(loginData),
@@ -85,8 +85,7 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(
-        "http://localhost:8080/api/auth/forgot-password",
+const response = await fetch("https://harvester-logx-backend-1.onrender.com/api/auth/forgot-password",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -126,7 +125,7 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
 
 
     try {
-      const response = await fetch("http://localhost:8080/api/auth/signup", {
+const response = await fetch("https://harvester-logx-backend-1.onrender.com/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
