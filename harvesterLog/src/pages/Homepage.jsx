@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 
-// ✅ Set your Render backend URL here
-const BACKEND_URL = "https://harvester-logx-backend-1.onrender.com";
+// The BACKEND_URL constant has been removed as requested.
+// The URL 'https://harvester-logx-backend-1.onrender.com' is now directly embedded in fetch calls.
 
 const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
   const [showSignup, setShowSignup] = useState(false);
@@ -20,10 +20,20 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
     password: "",
   });
 
+  // New State for Toast Notification
+  const [toast, setToast] = useState({ message: "", type: "" }); // type: 'success', 'error', 'info'
+
   // Search State
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Helper function to show and auto-clear toast messages
+  const showToast = (message, type) => {
+    setToast({ message, type });
+    // Auto-clear after 4 seconds
+    setTimeout(() => setToast({ message: "", type: "" }), 4000);
+  };
 
   // Restore login from localStorage
   useEffect(() => {
@@ -48,7 +58,8 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+      // Direct URL usage
+      const response = await fetch("https://harvester-logx-backend-1.onrender.com/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(loginData),
@@ -59,17 +70,18 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
       if (response.ok) {
         localStorage.setItem("user", JSON.stringify({ name: data.name }));
         onLogin(data.name);
-        alert("✅ Login Successful!");
+        showToast(`✅ Login Successful! Welcome, ${data.name}`, "success"); // Replaced alert
         setLoginData({ email: "", password: "" });
       } else {
         const errorMessage = data.error
           ? `❌ ${data.error}`
           : "❌ Login failed. Invalid credentials.";
-        alert(errorMessage);
+        showToast(errorMessage, "error"); // Replaced alert
       }
     } catch (err) {
       console.error("Login error:", err);
-      alert("⚠️ Unable to connect to backend.");
+      // Inform the user about the network issue/cold start
+      showToast("⚠️ Unable to connect to backend. (Check Render status or try again)", "error"); // Replaced alert
     }
   };
 
@@ -78,27 +90,28 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
     onLogout();
     localStorage.removeItem("user");
     setLoginData({ email: "", password: "" });
-    alert("👋 Logged out successfully!");
+    showToast("👋 Logged out successfully!", "info"); // Replaced alert
   };
 
   // Forgot password submit
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
+      // Direct URL usage
+      const response = await fetch("https://harvester-logx-backend-1.onrender.com/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: resetEmail }),
       });
 
       if (response.ok) {
-        alert("Password reset link sent to your email!");
+        showToast("Password reset link sent to your email!", "success"); // Replaced alert
       } else {
-        alert("Email not found. Please try again.");
+        showToast("Email not found. Please try again.", "error"); // Replaced alert
       }
     } catch (error) {
       console.error("Error sending reset request:", error);
-      alert("Server error. Try again later.");
+      showToast("Server error. Try again later.", "error"); // Replaced alert
     }
 
     setShowForgotPassword(false);
@@ -110,17 +123,18 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
     e.preventDefault();
 
     if (signupData.password !== signupData.confirmPassword) {
-      alert("Passwords do not match ❌");
+      showToast("Passwords do not match ❌", "error"); // Replaced alert
       return;
     }
 
     if (signupData.password.length < 6) {
-      alert("Password must be at least 6 characters ❌");
+      showToast("Password must be at least 6 characters ❌", "error"); // Replaced alert
       return;
     }
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/signup`, {
+      // Direct URL usage
+      const response = await fetch("https://harvester-logx-backend-1.onrender.com/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -132,15 +146,15 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
 
       if (response.ok) {
         const data = await response.json();
-        alert(`✅ Signup Successful! Welcome, ${data.name}`);
+        showToast(`✅ Signup Successful! Welcome, ${data.name}`, "success"); // Replaced alert
         setShowSignup(false);
         setSignupData({ name: "", email: "", password: "", confirmPassword: "" });
       } else {
-        alert("Signup failed ❌");
+        showToast("Signup failed ❌. Email may already be registered.", "error"); // Replaced alert
       }
     } catch (err) {
       console.error("Error during signup:", err);
-      alert("⚠️ Unable to connect to backend.");
+      showToast("⚠️ Unable to connect to backend for signup.", "error"); // Replaced alert
     }
   };
 
@@ -153,26 +167,46 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
     setSearchResults([]);
 
     try {
+      // Direct URL usage
       const response = await fetch(
-        `${BACKEND_URL}/api/logs/search?query=${encodeURIComponent(searchQuery)}`
+        `https://harvester-logx-backend-1.onrender.com/api/logs/search?query=${encodeURIComponent(searchQuery)}`
       );
       if (response.ok) {
         const data = await response.json();
         setSearchResults(data);
+        showToast(`Found ${data.length} results for "${searchQuery}"`, "info");
       } else {
         console.error("Search failed:", response.statusText);
-        alert("Failed to perform search. Server error.");
+        showToast("Failed to perform search. Server error.", "error"); // Replaced alert
       }
     } catch (err) {
       console.error("Search error:", err);
-      alert("⚠️ Unable to connect to backend for search.");
+      showToast("⚠️ Unable to connect to backend for search.", "error"); // Replaced alert
     } finally {
       setIsSearching(false);
     }
   };
 
+  // Determine Bootstrap class for Toast
+  const toastClass = toast.type === 'success' 
+    ? 'alert-success' 
+    : toast.type === 'error' 
+    ? 'alert-danger' 
+    : 'alert-info';
+
   return (
     <section id="main">
+      {/* Toast Notification */}
+      {toast.message && (
+        <div 
+          className={`alert ${toastClass} text-center fixed-top mt-3 mx-auto w-75`} 
+          role="alert" 
+          style={{ zIndex: 1050, maxWidth: "500px" }}
+        >
+          {toast.message}
+        </div>
+      )}
+
       {/* Carousel */}
       <div id="carouselExampleIndicators" className="carousel slide" data-bs-ride="carousel">
         <div className="carousel-indicators">
@@ -258,6 +292,45 @@ const HomePage = ({ isLoggedIn, userName, onLogin, onLogout }) => {
         ) : (
           <div className="text-center">
             <h3>Welcome back, {userName} 👋</h3>
+            
+            {/* Search Bar (Only visible when logged in) */}
+            <form onSubmit={handleSearchSubmit} className="input-group my-4">
+                <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search logs by location, crop, or owner..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    required
+                />
+                <button 
+                    className="btn btn-warning" 
+                    type="submit" 
+                    disabled={isSearching}
+                >
+                    {isSearching ? 'Searching...' : 'Search'}
+                </button>
+            </form>
+
+            {/* Search Results Display */}
+            {searchResults.length > 0 && (
+                <div className="mt-4 text-start">
+                    <h5>Search Results ({searchResults.length})</h5>
+                    <ul className="list-group">
+                        {searchResults.map((log, index) => (
+                            <li key={index} className="list-group-item d-flex justify-content-between align-items-start">
+                                <div className="ms-2 me-auto">
+                                    <div className="fw-bold">Crop: {log.cropName || 'N/A'} in {log.location || 'N/A'}</div>
+                                    <small>Owner: {log.ownerName || 'N/A'}</small>
+                                </div>
+                                <span className="badge bg-primary rounded-pill">ID: {log.logId.substring(0, 4)}...</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+
             <button className="btn btn-outline-danger mt-3" onClick={handleLogoutClick}>
               Logout
             </button>
