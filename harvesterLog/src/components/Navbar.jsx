@@ -15,7 +15,7 @@ const handleDownloadPDF = async (selectedLogs = []) => {
     return;
   }
 
-  const apiUrl = `C:\Mani workspace\react\harvesterLog/api/auth/logs/user/${encodeURIComponent(createdBy)}`;
+  const apiUrl = `https://harvester-logx-backend-1.onrender.com/api/auth/logs/user/${encodeURIComponent(createdBy)}`;
 
   try {
     const response = await fetch(apiUrl);
