@@ -36,7 +36,7 @@ const ViewLogsPage = () => {
       setFeedbackMessage(null);
       try {
         const response = await fetch(
-          `http://localhost:8080/api/auth/logs/user/${encodeURIComponent(
+          `https://harvester-logx-backend-1.onrender.com/api/auth/logs/user/${encodeURIComponent(
             createdBy.trim()
           )}`
         );
@@ -212,7 +212,7 @@ const handleBatchSave = async () => {
         };
     });
 
-    const updateUrl = `http://localhost:8080/api/auth/logs/batch-update?user=${encodeURIComponent(createdBy)}`;
+    const updateUrl = `https://harvester-logx-backend-1.onrender.com/api/auth/logs/batch-update?user=${encodeURIComponent(createdBy)}`;
 
     try {
         const response = await fetch(updateUrl, {
@@ -255,7 +255,7 @@ const deleteLogs = async (logIds) => {
     }
     
     // The endpoint must match your Spring Boot controller: @DeleteMapping("/logs/batch-delete")
-    const deleteUrl = `http://localhost:8080/api/auth/logs/batch-delete?user=${encodeURIComponent(createdBy)}`;
+    const deleteUrl = `https://harvester-logx-backend-1.onrender.com/api/auth/logs/batch-delete?user=${encodeURIComponent(createdBy)}`;
 
     const response = await fetch(deleteUrl, {
         method: "DELETE", 

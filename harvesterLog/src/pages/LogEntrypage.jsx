@@ -144,7 +144,7 @@ const LogEntryPage = () => {
       };
 
       try {
-        const response = await fetch("http://localhost:8080/api/auth/logs/save", {
+        const response = await fetch("https://harvester-logx-backend-1.onrender.com/api/auth/logs/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
