@@ -9,7 +9,7 @@ const getMonthName = (date) => {
 
 // ✅ Enhanced PDF download with selected/all logs support
 const handleDownloadPDF = async (selectedLogs = []) => {
-  const createdBy = JSON.parse(localStorage.getItem("user"))?.name;
+  const createdBy = JSON.parse(localStorage.getItem("user"))?.name?.trim();
   if (!createdBy) {
     alert("User identity missing. Cannot fetch logs.");
     return;
