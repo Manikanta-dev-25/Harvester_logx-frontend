@@ -1,7 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <meta http-equiv="refresh" content="0; url=/Harvester_logx-frontend/" />
+    <meta charset="UTF-8">
+    <title>Redirecting...</title>
+    <script>
+      // Get the current path and redirect to index.html with query hash
+      const path = window.location.pathname + window.location.search;
+      const base = "/Harvester_logx-frontend"; // your repo subpath
+      window.location.replace(`${base}/?path=${encodeURIComponent(path)}`);
+    </script>
   </head>
   <body>
     <p>Redirecting...</p>
