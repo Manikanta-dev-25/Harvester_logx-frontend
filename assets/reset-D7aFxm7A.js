@@ -1,0 +1,1 @@
+import{d as s,j as e,e as t,B as r,R as o,a,b as d}from"./forgetpassword-DuFNPVI3.js";s.createRoot(document.getElementById("root")).render(e.jsx(t.StrictMode,{children:e.jsx(r,{children:e.jsx(o,{children:e.jsx(a,{path:"/",element:e.jsx(d,{})})})})}));
