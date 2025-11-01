@@ -49,6 +49,7 @@ const App = () => {
               onLogout={handleLogout}
             />
           }
+          end
         />
         <Route path="/log-entry" element={<LogEntryPage />} />
         <Route path="/signup" element={<SignupPage />} />
