@@ -1,39 +1,21 @@
 import React, { useState, useEffect } from "react";
 
 const LogEntryPage = () => {
-  const [rows, setRows] = useState([
-    {
-      farmer: "",
-      phone: "",
-      village: "",
-      hourlyWage: "",
-      intervals: [{ start: "", end: "", duration: "" }],
-      total: "",
-      totalDuration: "",
-    },
-  ]);
-  const clearDraft = () => {
-    const confirmClear = window.confirm("Are you sure you want to clear all unsaved entries?");
-  if (!confirmClear) return;
-  localStorage.removeItem("unsavedLogRows");
-  setRows([
-    {
-      farmer: "",
-      phone: "",
-      village: "",
-      hourlyWage: "",
-      intervals: [{ start: "", end: "", duration: "" }],
-      total: "",
-      totalDuration: "",
-    },
-  ]);
-};
+  const emptyRow = {
+    farmer: "",
+    phone: "",
+    village: "",
+    hourlyWage: "",
+    intervals: [{ start: "", end: "", duration: "" }],
+    total: "",
+    totalDuration: "",
+  };
+
+  const [rows, setRows] = useState([emptyRow]);
 
   useEffect(() => {
     const saved = localStorage.getItem("unsavedLogRows");
-    if (saved) {
-      setRows(JSON.parse(saved));
-    }
+    if (saved) setRows(JSON.parse(saved));
   }, []);
 
   const updateRows = (newRows) => {
@@ -46,23 +28,33 @@ const LogEntryPage = () => {
     let [hour, minute] = time24.split(":").map(Number);
     const ampm = hour >= 12 ? "PM" : "AM";
     hour = hour % 12 || 12;
-    return `${hour.toString().padStart(2, "0")}:${minute
-      .toString()
-      .padStart(2, "0")} ${ampm}`;
+    return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")} ${ampm}`;
+  };
+
+  const formatHours = (decimal) => {
+    const hrs = Math.floor(decimal);
+    const mins = Math.round((decimal - hrs) * 60);
+    return `${hrs} hr ${mins} min`;
+  };
+
+  const calculateRowTotals = (row) => {
+    const rate = parseFloat(row.hourlyWage || 0);
+    const totalDuration = row.intervals.reduce(
+      (sum, i) => sum + parseFloat(i.duration || 0),
+      0
+    );
+    return {
+      totalDuration: formatHours(totalDuration),
+      total: (totalDuration * rate).toFixed(2),
+    };
   };
 
   const handleChange = (index, field, value) => {
     const newRows = [...rows];
     newRows[index][field] = value;
-
-    const rate = parseFloat(newRows[index].hourlyWage || 0);
-    const totalDuration = newRows[index].intervals.reduce(
-      (sum, i) => sum + parseFloat(i.duration || 0),
-      0
-    );
-    newRows[index].totalDuration = totalDuration.toFixed(2);
-    newRows[index].total = (totalDuration * rate).toFixed(2);
-
+    const { totalDuration, total } = calculateRowTotals(newRows[index]);
+    newRows[index].totalDuration = totalDuration;
+    newRows[index].total = total;
     updateRows(newRows);
   };
 
@@ -74,36 +66,18 @@ const LogEntryPage = () => {
     if (interval.start && interval.end) {
       const start = new Date(`1970-01-01T${interval.start}:00`);
       const end = new Date(`1970-01-01T${interval.end}:00`);
-      let diff = (end - start) / 1000 / 3600;
+      let diff = (end - start) / 3600000;
       if (diff < 0) diff += 24;
       interval.duration = diff.toFixed(2);
     }
 
-    const rate = parseFloat(newRows[rowIndex].hourlyWage || 0);
-    const totalDuration = newRows[rowIndex].intervals.reduce(
-      (sum, i) => sum + parseFloat(i.duration || 0),
-      0
-    );
-    newRows[rowIndex].totalDuration = totalDuration.toFixed(2);
-    newRows[rowIndex].total = (totalDuration * rate).toFixed(2);
-
+    const { totalDuration, total } = calculateRowTotals(newRows[rowIndex]);
+    newRows[rowIndex].totalDuration = totalDuration;
+    newRows[rowIndex].total = total;
     updateRows(newRows);
   };
 
-  const addRow = () => {
-    updateRows([
-      ...rows,
-      {
-        farmer: "",
-        phone: "",
-        village: "",
-        hourlyWage: "",
-        intervals: [{ start: "", end: "", duration: "" }],
-        total: "",
-        totalDuration: "",
-      },
-    ]);
-  };
+  const addRow = () => updateRows([...rows, emptyRow]);
 
   const addInterval = (rowIndex) => {
     const newRows = [...rows];
@@ -111,50 +85,54 @@ const LogEntryPage = () => {
     updateRows(newRows);
   };
 
+  const clearDraft = () => {
+    if (window.confirm("Are you sure you want to clear all unsaved entries?")) {
+      localStorage.removeItem("unsavedLogRows");
+      setRows([emptyRow]);
+    }
+  };
+
   const handleSave = async () => {
     const user = JSON.parse(localStorage.getItem("user"));
-    if (!user || !user.name) {
+    if (!user?.name) {
       alert("⚠️ No user logged in. Please login first.");
       return;
     }
 
     for (const row of rows) {
+      const rate = parseFloat(row.hourlyWage || 0);
       const totalDuration = row.intervals.reduce(
         (sum, i) => sum + parseFloat(i.duration || 0),
         0
       );
-      const totalPrice = totalDuration * parseFloat(row.hourlyWage || 0);
-
       const payload = {
         createdBy: user.name,
         name: row.farmer,
         phno: row.phone,
         village: row.village,
-        hourlyWage: parseFloat(row.hourlyWage || 0),
-        totalHours: totalDuration.toFixed(2),
-        totalPrice: totalPrice.toFixed(2),
+        hourlyWage: rate,
+        totalHours: formatHours(totalDuration),
+        totalPrice: (totalDuration * rate).toFixed(2),
         timeIntervals: row.intervals.map((i) => ({
           startTime: to12Hour(i.start),
           stopTime: to12Hour(i.end),
-          duration: i.duration,
-          price: (
-            parseFloat(i.duration || 0) * parseFloat(row.hourlyWage || 0)
-          ).toFixed(2),
+          duration: formatHours(parseFloat(i.duration || 0)),
+          price: (parseFloat(i.duration || 0) * rate).toFixed(2),
         })),
       };
 
       try {
-        const response = await fetch("https://harvester-logx-backend-1.onrender.com/api/auth/logs/save", {
+        const res = await fetch("https://harvester-logx-backend-1.onrender.com/api/auth/logs/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
 
-        if (response.ok) {
-          console.log("Saved:", payload);
+        if (!res.ok) {
+          const errText = await res.text();
+          console.error("Failed to save:", errText);
         } else {
-          const errorText = await response.text();
-          console.error("Failed to save:", errorText);
+          console.log("Saved:", payload);
         }
       } catch (err) {
         console.error("Save error:", err);
@@ -162,18 +140,7 @@ const LogEntryPage = () => {
     }
 
     localStorage.removeItem("unsavedLogRows");
-    setRows([
-      {
-        farmer: "",
-        phone: "",
-        village: "",
-        hourlyWage: "",
-        intervals: [{ start: "", end: "", duration: "" }],
-        total: "",
-        totalDuration: "",
-      },
-    ]);
-
+    setRows([emptyRow]);
     alert("✅ All logs saved successfully!");
   };
 
