@@ -93,56 +93,57 @@ const LogEntryPage = () => {
   };
 
   const handleSave = async () => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (!user?.name) {
-      alert("⚠️ No user logged in. Please login first.");
-      return;
-    }
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (!user?.name) {
+    alert("⚠️ No user logged in. Please login first.");
+    return;
+  }
 
-    for (const row of rows) {
-      const rate = parseFloat(row.hourlyWage || 0);
-      const totalDuration = row.intervals.reduce(
-        (sum, i) => sum + parseFloat(i.duration || 0),
-        0
-      );
-      const payload = {
-        createdBy: user.name,
-        name: row.farmer,
-        phno: row.phone,
-        village: row.village,
-        hourlyWage: rate,
-        totalHours: formatHours(totalDuration),
-        totalPrice: (totalDuration * rate).toFixed(2),
-        timeIntervals: row.intervals.map((i) => ({
-          startTime: to12Hour(i.start),
-          stopTime: to12Hour(i.end),
-          duration: formatHours(parseFloat(i.duration || 0)),
-          price: (parseFloat(i.duration || 0) * rate).toFixed(2),
-        })),
-      };
+  for (const row of rows) {
+    const rate = parseFloat(row.hourlyWage || 0);
+    const totalDurationRaw = row.intervals.reduce(
+      (sum, i) => sum + parseFloat(i.duration || 0),
+      0
+    );
 
-      try {
-        const res = await fetch("https://harvester-logx-backend-1.onrender.com/api/auth/logs/save", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+    const payload = {
+      createdBy: user.name,
+      name: row.farmer,
+      phno: row.phone,
+      village: row.village,
+      hourlyWage: rate,
+      totalHours: totalDurationRaw, // ✅ raw number
+      totalPrice: totalDurationRaw * rate, // ✅ raw number
+      timeIntervals: row.intervals.map((i) => ({
+        startTime: to12Hour(i.start),
+        stopTime: to12Hour(i.end),
+        duration: parseFloat(i.duration || 0), // ✅ raw number
+        price: parseFloat(i.duration || 0) * rate, // ✅ raw number
+      })),
+    };
 
-        if (!res.ok) {
-          const errText = await res.text();
-          console.error("Failed to save:", errText);
-        } else {
-          console.log("Saved:", payload);
-        }
-      } catch (err) {
-        console.error("Save error:", err);
+    try {
+      const res = await fetch("https://harvester-logx-backend-1.onrender.com/api/auth/logs/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("Failed to save:", errText);
+      } else {
+        console.log("Saved:", payload);
       }
+    } catch (err) {
+      console.error("Save error:", err);
     }
+  }
 
-    localStorage.removeItem("unsavedLogRows");
-    setRows([emptyRow]);
-    alert("✅ All logs saved successfully!");
-  };
+  localStorage.removeItem("unsavedLogRows");
+  setRows([emptyRow]);
+  alert("✅ All logs saved successfully!");
+};
 
   return (
     <div className="p-3">
