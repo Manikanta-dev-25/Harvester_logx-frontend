@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react"; 
+import React, { useEffect, useState, useMemo } from "react";
 
 const ViewLogsPage = () => {
   const [logs, setLogs] = useState([]);
@@ -26,6 +26,12 @@ const ViewLogsPage = () => {
     const ampm = hour >= 12 ? "PM" : "AM";
     hour = hour % 12 || 12;
     return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${ampm}`;
+  };
+
+  const formatHours = (decimal) => {
+    const hrs = Math.floor(decimal);
+    const mins = Math.round((decimal - hrs) * 60);
+    return `${hrs} hr ${mins} min`;
   };
 
   useEffect(() => {
@@ -155,129 +161,129 @@ const ViewLogsPage = () => {
         const defaultRate = log.hourlyWage ? Number(log.hourlyWage).toFixed(2) : 0;
         return log.id === logId
           ? {
-              ...log,
-              timeIntervals: [
-                ...log.timeIntervals,
-                {
-                  startTime: "",
-                  stopTime: "",
-                  start24: "",
-                  stop24: "",
-                  duration: "",
-                  hourlyRate: defaultRate,
-                  price: 0,
-                },
-              ],
-            }
+            ...log,
+            timeIntervals: [
+              ...log.timeIntervals,
+              {
+                startTime: "",
+                stopTime: "",
+                start24: "",
+                stop24: "",
+                duration: "",
+                hourlyRate: defaultRate,
+                price: 0,
+              },
+            ],
+          }
           : log;
       })
     );
   };
 
-// Add this function to ViewLogsPage.js (near handleSave)
+  // Add this function to ViewLogsPage.js (near handleSave)
 
-const handleBatchSave = async () => {
+  const handleBatchSave = async () => {
     setFeedbackMessage(null);
 
     if (filteredLogs.length === 0) {
-        alert("No logs to save.");
-        return;
+      alert("No logs to save.");
+      return;
     }
 
     // 1. Prepare the entire list of logs to send
     const logsToSend = filteredLogs.map(log => {
-        const edited = editedLogs[log.id] || {};
+      const edited = editedLogs[log.id] || {};
 
-        const intervalsToSend = log.timeIntervals.map((i) => ({
-            // Convert 24-hour display back to 12-hour format for the backend
-            startTime: i.start24 ? from24Hour(i.start24) : i.startTime,
-            stopTime: i.stop24 ? from24Hour(i.stop24) : i.stopTime,
-            // Use the current calculated values
-            duration: parseFloat(i.duration) || 0,
-            price: parseFloat(i.price) || 0,
-            hourlyRate: parseFloat(i.hourlyRate) || 0,
-        }));
+      const intervalsToSend = log.timeIntervals.map((i) => ({
+        // Convert 24-hour display back to 12-hour format for the backend
+        startTime: i.start24 ? from24Hour(i.start24) : i.startTime,
+        stopTime: i.stop24 ? from24Hour(i.stop24) : i.stopTime,
+        // Use the current calculated values
+        duration: parseFloat(i.duration) || 0,
+        price: parseFloat(i.price) || 0,
+        hourlyRate: parseFloat(i.hourlyRate) || 0,
+      }));
 
-        return {
-            ...log,
-            // Apply top-level field edits if they exist
-            name: edited.name ?? log.name,
-            phno: edited.phno ?? log.phno,
-            village: edited.village ?? log.village,
-            // Send final calculated totals and intervals
-            totalHours: parseFloat(log.totalHours) || 0,
-            totalPrice: parseFloat(log.totalPrice) || 0,
-            hourlyWage: parseFloat(log.hourlyWage) || 0,
-            timeIntervals: intervalsToSend,
-        };
+      return {
+        ...log,
+        // Apply top-level field edits if they exist
+        name: edited.name ?? log.name,
+        phno: edited.phno ?? log.phno,
+        village: edited.village ?? log.village,
+        // Send final calculated totals and intervals
+        totalHours: parseFloat(log.totalHours) || 0,
+        totalPrice: parseFloat(log.totalPrice) || 0,
+        hourlyWage: parseFloat(log.hourlyWage) || 0,
+        timeIntervals: intervalsToSend,
+      };
     });
 
     const updateUrl = `https://harvester-logx-backend-1.onrender.com/api/auth/logs/batch-update?user=${encodeURIComponent(createdBy)}`;
 
     try {
-        const response = await fetch(updateUrl, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(logsToSend), // SEND THE LIST
-        });
+      const response = await fetch(updateUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(logsToSend), // SEND THE LIST
+      });
 
-        if (response.ok) {
-            // Note: Since we sent all filtered logs, we should refresh the data 
-            // or assume the save was successful for all and clear all edited state.
-            setEditedLogs({}); 
-            alert(`SUCCESS: ${logsToSend.length} log(s) updated successfully! ✅`);
-        } else {
-            const errorText = await response.text();
-            alert(`ERROR: Failed to save updates. Server response: ${errorText || "Server error."}`);
-        }
+      if (response.ok) {
+        // Note: Since we sent all filtered logs, we should refresh the data 
+        // or assume the save was successful for all and clear all edited state.
+        setEditedLogs({});
+        alert(`SUCCESS: ${logsToSend.length} log(s) updated successfully! ✅`);
+      } else {
+        const errorText = await response.text();
+        alert(`ERROR: Failed to save updates. Server response: ${errorText || "Server error."}`);
+      }
     } catch (err) {
-        console.error("Batch Save failed:", err);
-        alert("ERROR: Unable to connect to backend. Please check your server.");
+      console.error("Batch Save failed:", err);
+      alert("ERROR: Unable to connect to backend. Please check your server.");
     }
-};
+  };
 
   // Assume these state variables and utility functions are available in your component scope:
-// const [selectedLogs, setSelectedLogs] = useState([]);
-// const [logs, setLogs] = useState([]); 
-// const { createdBy } = useContext(AuthContext); // Or similar source for createdBy
+  // const [selectedLogs, setSelectedLogs] = useState([]);
+  // const [logs, setLogs] = useState([]); 
+  // const { createdBy } = useContext(AuthContext); // Or similar source for createdBy
 
-// 1. Handler for individual checkbox changes
-const handleCheckboxChange = (logId, checked) => {
+  // 1. Handler for individual checkbox changes
+  const handleCheckboxChange = (logId, checked) => {
     // Toggles the log ID in the selectedLogs array
     if (checked) setSelectedLogs((prev) => [...prev, logId]);
     else setSelectedLogs((prev) => prev.filter((id) => id !== logId));
-};
+  };
 
-// 2. CORE: Function to call the Batch Delete API and update local state
-const deleteLogs = async (logIds) => {
+  // 2. CORE: Function to call the Batch Delete API and update local state
+  const deleteLogs = async (logIds) => {
     if (!createdBy) {
-        throw new Error("User authorization token is missing.");
+      throw new Error("User authorization token is missing.");
     }
-    
+
     // The endpoint must match your Spring Boot controller: @DeleteMapping("/logs/batch-delete")
     const deleteUrl = `https://harvester-logx-backend-1.onrender.com/api/auth/logs/batch-delete?user=${encodeURIComponent(createdBy)}`;
 
     const response = await fetch(deleteUrl, {
-        method: "DELETE", 
-        headers: { "Content-Type": "application/json" },
-        // Send the array of IDs in the format the backend expects: { "ids": [1, 2, 3] }
-        body: JSON.stringify({ ids: logIds }), 
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      // Send the array of IDs in the format the backend expects: { "ids": [1, 2, 3] }
+      body: JSON.stringify({ ids: logIds }),
     });
 
     if (!response.ok) {
-        // Reads the error response from the server (e.g., "Unauthorized...")
-        const errorText = await response.text();
-        throw new Error(errorText || `HTTP Error ${response.status} from server.`);
+      // Reads the error response from the server (e.g., "Unauthorized...")
+      const errorText = await response.text();
+      throw new Error(errorText || `HTTP Error ${response.status} from server.`);
     }
-    
+
     // Update the local 'logs' state to remove the deleted logs immediately
     setLogs((prevLogs) => prevLogs.filter((log) => !logIds.includes(log.id)));
-    
-    return true; 
-};
 
-// 3. Handler for the "Delete Selected" button click (Your original function, now working)
-const handleDeleteSelected = async () => {
+    return true;
+  };
+
+  // 3. Handler for the "Delete Selected" button click (Your original function, now working)
+  const handleDeleteSelected = async () => {
     if (!selectedLogs.length) return;
 
     const confirmDelete = window.confirm(
@@ -287,23 +293,23 @@ const handleDeleteSelected = async () => {
     if (!confirmDelete) return;
 
     try {
-        // This call will now execute the API request defined above
-        await deleteLogs(selectedLogs); 
-        
-        // Success alert
-        alert(`SUCCESS: ${selectedLogs.length} selected log(s) deleted successfully! ✅`); 
-        
-        // Clear the selections
-        setSelectedLogs([]);
+      // This call will now execute the API request defined above
+      await deleteLogs(selectedLogs);
+
+      // Success alert
+      alert(`SUCCESS: ${selectedLogs.length} selected log(s) deleted successfully! ✅`);
+
+      // Clear the selections
+      setSelectedLogs([]);
     } catch (error) {
-        // Log the full error object for developer debugging
-        console.error("Deletion failed:", error);
-        
-        // Show a detailed failure message using the error's message property
-        const errorMessage = error.message || "Unknown server error.";
-        alert(`ERROR: Failed to delete logs. Server details: ${errorMessage}`);
+      // Log the full error object for developer debugging
+      console.error("Deletion failed:", error);
+
+      // Show a detailed failure message using the error's message property
+      const errorMessage = error.message || "Unknown server error.";
+      alert(`ERROR: Failed to delete logs. Server details: ${errorMessage}`);
     }
-};
+  };
 
 
   if (!createdBy)
@@ -319,9 +325,8 @@ const handleDeleteSelected = async () => {
 
       {feedbackMessage && (
         <div
-          className={`p-3 mb-4 rounded-md text-white font-semibold ${
-            feedbackMessage.type === "success" ? "bg-green-600" : "bg-red-600"
-          }`}
+          className={`p-3 mb-4 rounded-md text-white font-semibold ${feedbackMessage.type === "success" ? "bg-green-600" : "bg-red-600"
+            }`}
           role="alert"
         >
           {feedbackMessage.text}
@@ -448,7 +453,7 @@ const handleDeleteSelected = async () => {
                             <input
                               type="text"
                               className="form-control form-control-sm"
-                              value={interval.duration + " hrs"}
+                              value={formatHours(Number(interval.duration))}
                               readOnly
                               style={{ width: "100px" }}
                             />
@@ -482,7 +487,7 @@ const handleDeleteSelected = async () => {
                       <input
                         type="text"
                         className="form-control bg-secondary text-white"
-                        value={log.totalHours}
+                        value={formatHours(Number(log.totalHours))}
                         readOnly
                         style={{ width: "100px" }}
                       />
@@ -541,11 +546,11 @@ const handleDeleteSelected = async () => {
               padding: "6px 20px",
             }}
           >
-           🔄 Refresh Logs
-</button>
-</div>
-</section>
-</div>
-);
+            🔄 Refresh Logs
+          </button>
+        </div>
+      </section>
+    </div>
+  );
 };
 export default ViewLogsPage;
