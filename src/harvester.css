@@ -1,0 +1,108 @@
+.dropdown-menu a.dropdown-item:hover {
+  background-color: darkgreen;
+  color: white; 
+}
+.dropdown-menu hr.dropdown-divider{
+ border-color: white;
+}
+body{
+  background-color: rgb(88, 88, 92);
+background-image: url('/Harvester_logx-frontend/bg-img.jpeg');
+
+background-repeat: no-repeat;
+background-size: cover;
+  background-attachment: scroll;
+   min-height: 100vh;
+
+}
+.navbar-toggler-icon{
+   opacity: 1;
+   font-size: large;
+   font-weight:bold ;
+   width: 30px;
+   height: 30px;
+   background-color: aliceblue;
+}
+#main{
+  display: flex;
+  flex-direction: row;
+  padding-top: 50px;
+  padding-bottom: 50px;
+  padding-left: 10px;
+  padding-right:10px ;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  border-radius: 10px;
+  border: 5px solid black;
+  margin-top: 5px;
+}
+.carousel-inner{
+  width: 100%;
+  height: fit-content;
+}
+.carousel-item{
+  width: 100%;
+  height: auto;
+}
+.carousel-item img{
+  width: 100%;
+  height: 400px;
+  
+}
+.form{
+  width: 25%;
+  height: 400px;
+  margin:auto;
+  font-weight: 400;
+  font-size: large;
+  border: 3px solid whitesmoke;
+  padding: 30px;
+  border-radius: 5px;
+  background-color:  rgba(255, 255, 255, 0.3);
+}
+
+#carouselExampleIndicators{
+  width:70%;
+  height: auto;
+}
+@media (max-width: 768px) {
+  #main{
+    display: flex;
+    flex-direction: column;
+   
+  }
+  .form{
+  width: 80%;
+  height: auto;
+  margin-top: 5px;
+}
+#carouselExampleIndicators{
+  width:80%;
+  height: auto;
+}
+}
+#View-Logs{
+ padding: 20px 10px;
+}
+@media (max-width: 576px) {
+  .log-btn {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    justify-content: space-between;
+  }
+  .options{
+    position: sticky;
+    bottom: 0%;
+    display:flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: max-content;
+    gap: 8px;
+    box-shadow: 0 4px 8px white;
+  }
+}
+#navbarSupportedContent{
+  margin-right: 30px;
+}
